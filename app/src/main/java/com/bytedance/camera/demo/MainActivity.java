@@ -17,6 +17,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CAMERA,Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.RECORD_AUDIO},1000);
 
         findViewById(R.id.btn_picture).setOnClickListener(v -> {
             startActivity(new Intent(MainActivity.this, TakePictureActivity.class));
@@ -35,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
 //                 }
 //                 else{
                //  否则去请求相机权限
-                 ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CAMERA,Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.RECORD_AUDIO},1000);
+//                 ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CAMERA,Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.RECORD_AUDIO},1000);
 //                 }
 
              startActivity(new Intent(MainActivity.this, CustomCameraActivity.class));
