@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
 //                 }
 //                 else{
                //  否则去请求相机权限
-                 ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CAMERA,Manifest.permission.WRITE_EXTERNAL_STORAGE},1000);
+                 ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CAMERA,Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.RECORD_AUDIO},1000);
 //                 }
 
              startActivity(new Intent(MainActivity.this, CustomCameraActivity.class));
