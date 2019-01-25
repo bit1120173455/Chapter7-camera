@@ -18,6 +18,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -35,16 +36,18 @@ public class CustomCameraActivity extends AppCompatActivity implements SurfaceHo
 
     private SurfaceView mSurfaceView;
     private Camera mCamera;
+    private SurfaceHolder mHolder;
     File mediaFile;
-    private int currentCameraType = 1;//当前打开的摄像头标记
-
-    private int CAMERA_TYPE = Camera.CameraInfo.CAMERA_FACING_BACK;
-    private static final int REQUEST_IMAGE_CAPTURE = 1;
-
+    private int BACK = Camera.CameraInfo.CAMERA_FACING_BACK;
+    private int FRONT = Camera.CameraInfo.CAMERA_FACING_FRONT;
+//    private int CAMERA_TYPE = Camera.CameraInfo.CAMERA_FACING_BACK;
+//    private static final int REQUEST_IMAGE_CAPTURE = 1;
+    private int currentCameraType = 0;
     private boolean isRecording = false;
 
     private int rotationDegree = 0;
 
+//    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,115 +57,55 @@ public class CustomCameraActivity extends AppCompatActivity implements SurfaceHo
         setContentView(R.layout.activity_custom_camera);
 
         mSurfaceView = findViewById(R.id.img);
-        mCamera = getCamera(1);
-        currentCameraType=1;
+        mCamera = getCamera(BACK);
         //todo 给SurfaceHolder添加Callback
-        SurfaceHolder surfaceHolder = mSurfaceView.getHolder();
-        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-        surfaceHolder.addCallback(this);
-//        mCamera.stopPreview();
-//        mCamera.release();
-        //surfaceHolder.addCallback(new SurfaceHolder.Callback() {
-//            @Override
-//            public void surfaceCreated(SurfaceHolder holder) {
-//                try {
-//                    mCamera.setPreviewDisplay(holder);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//                mCamera.startPreview();
-//            }
-//
-//            @Override
-//            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-//
-//            }
-//
-//            @Override
-//            public void surfaceDestroyed(SurfaceHolder holder) {
-//                mCamera.stopPreview();
-//                mCamera.release();
-//                mCamera = null;
-//            }
-   //     });
+        mHolder=mSurfaceView.getHolder();
+        mHolder.addCallback(this);
+        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
 
         findViewById(R.id.btn_picture).setOnClickListener(v -> {
-            //todo 拍一张照片
-            Camera.PictureCallback mPicture = (data,camera)->{
-              File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
-              try{
-                  FileOutputStream fos = new FileOutputStream(pictureFile);
-                  fos.write(data);
-                  fos.close();
-              } catch (FileNotFoundException e) {
-                  e.printStackTrace();
-              } catch (IOException e) {
-                  e.printStackTrace();
-              }
-//              getCameraDisplayOrientation(0);
-              mCamera.startPreview();
-            };
-//            mediaFile = Utils.getOutputMediaFile(Utils.MEDIA_TYPE_IMAGE);
-//            Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-////        startActivityForResult(takePictureIntent,REQUEST_IMAGE_CAPTURE);
-//            if (mediaFile != null) {
-//                Uri fileUri = FileProvider.getUriForFile(this,"com.bytedance.camera.demo",mediaFile);
-//                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,fileUri);
-//                startActivityForResult(takePictureIntent,REQUEST_IMAGE_CAPTURE);
-//            }
-        });
+                    //todo 拍一张照片
+                    mCamera.takePicture(null, null, mPicture);
+                });
 
-        findViewById(R.id.btn_record).setOnClickListener(v -> {
-            //todo 录制，第一次点击是start，第二次点击是stop
-            if (isRecording) {
-                //todo 停止录制
-                mMediaRecorder.stop();
-                mMediaRecorder.reset();
-                mMediaRecorder.release();
-                mMediaRecorder = null;
-                mCamera.lock();
-                isRecording = false;
-            } else {
-                //todo 录制
-                mMediaRecorder = new MediaRecorder();
-                mCamera.unlock();
-                mMediaRecorder.setCamera(mCamera);
-                mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
-                mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-                mMediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH));
-                mMediaRecorder.setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO).toString());
-                mMediaRecorder.setPreviewDisplay(mSurfaceView.getHolder().getSurface());
-                mMediaRecorder.setOrientationHint(rotationDegree);
-                try {
-                    mMediaRecorder.prepare();
-                    mMediaRecorder.start();
-                } catch (IOException e) {
-                    releaseMediaRecorder();
-                    e.printStackTrace();
-                    isRecording = true;
-//                    return false;
-                }
-            }
-        });
+        Button record = findViewById(R.id.btn_record);
+        record.setOnClickListener(v -> {
+                    //todo 录制，第一次点击是start，第二次点击是stop
+                    if (isRecording) {
+                        //todo 停止录制
+                        mMediaRecorder.stop();
+                        releaseMediaRecorder();
+                        mCamera.lock();
+                        record.setText("continue");
+                        isRecording = false;
+                    } else {
+                        //todo 录制
+                        if (prepareVideoRecorder()) {
+                            mMediaRecorder.start();
+                            record.setText("Stop");
+                            isRecording = true;
+                            } else {
+                           releaseMediaRecorder();
+                       }
+
+                    }
+                });
 
         findViewById(R.id.btn_facing).setOnClickListener(v -> {
-            //todo 切换前后摄像头
-//                mCamera.stopPreview();
-//                mCamera.release();
-                if(currentCameraType == 1){
-                    currentCameraType=0;
-                    mCamera = getCamera(0);
-                }else if(currentCameraType == 0){
-                    currentCameraType=1;
-                    mCamera = getCamera(1);
-                }
+                    //todo 切换前后摄像头
             try {
-                mCamera.setPreviewDisplay(mSurfaceView.getHolder());
+
+                changeCamera();
+
             } catch (IOException e) {
+
+                // TODO Auto-generated catch block
+
                 e.printStackTrace();
+
             }
-            mCamera.startPreview();
-        });
+                });
 
         findViewById(R.id.btn_zoom).setOnClickListener(v -> {
             //todo 调焦，需要判断手机是否支持
@@ -178,15 +121,27 @@ public class CustomCameraActivity extends AppCompatActivity implements SurfaceHo
                 params.setMeteringAreas(meteringAreas);
 
             }
-
-
-
             mCamera.setParameters(params);
         });
     }
+    private void changeCamera() throws IOException{
+        mCamera.stopPreview();
+        mCamera.release();
+        if(currentCameraType == FRONT){
+            mCamera = getCamera(BACK);
+        }else if(currentCameraType == BACK){
+            mCamera = getCamera(FRONT);
+        }
+        try {
+            mCamera.setPreviewDisplay(mSurfaceView.getHolder());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mCamera.startPreview();
+    }
 
     public Camera getCamera(int position) {
-        CAMERA_TYPE = position;
+        currentCameraType = position;
         if (mCamera != null) {
             releaseCameraAndPreview();
         }
@@ -241,15 +196,16 @@ public class CustomCameraActivity extends AppCompatActivity implements SurfaceHo
 
     private void releaseCameraAndPreview() {
         //todo 释放camera资源
-//        mPreview.setCamera(null);
-
-        if (mCamera != null) {
-
-            mCamera.release();
-
-            mCamera = null;
-
+        if (mMediaRecorder != null) {
+            mMediaRecorder.reset();   // clear recorder configuration
+            mMediaRecorder.release(); // release the recorder object
+            mMediaRecorder = null;
+            mCamera.lock();           // lock camera for later use
         }
+        if (mCamera != null){
+            mCamera.release();        // release the camera for other applications
+            mCamera = null;
+            }
     }
 
     Camera.Size size;
@@ -267,26 +223,30 @@ public class CustomCameraActivity extends AppCompatActivity implements SurfaceHo
 
     private MediaRecorder mMediaRecorder;
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
+//    @RequiresApi(api = Build.VERSION_CODES.O)
     private boolean prepareVideoRecorder() {
         //todo 准备MediaRecorder
-        if (mMediaRecorder == null) {
-            mMediaRecorder = new MediaRecorder();
-            mMediaRecorder.reset();
-        }
-        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
-        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+                mMediaRecorder = new MediaRecorder();
+                mCamera.unlock();
+                mMediaRecorder.setCamera(mCamera);
+                mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
+                mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+                mMediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH));
+                mMediaRecorder.setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO).toString());
+                mMediaRecorder.setPreviewDisplay(mSurfaceView.getHolder().getSurface());
+ //               mMediaRecorder.setOrientationHint(rotationDegree);
+                try {
+                    mMediaRecorder.prepare();
+//                    mMediaRecorder.start();
+                } catch (IOException e) {
+                    releaseMediaRecorder();
+                    e.printStackTrace();
+                    return false;
+                }
+                return true;
+//            }
 
-        mMediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH));
-        mMediaRecorder.setOutputFile(getOutputMediaFile(Utils.MEDIA_TYPE_VIDEO));
-        mMediaRecorder.setPreviewDisplay(mSurfaceView.getHolder().getSurface());
-        try {
-            mMediaRecorder.prepare();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return true;
-    }
+    };
 
 
     private void releaseMediaRecorder() {
@@ -306,7 +266,26 @@ public class CustomCameraActivity extends AppCompatActivity implements SurfaceHo
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        startPreview(holder);
+//        startPreview(holder);
+        if (mHolder.getSurface() == null){
+            // preview surface does not exist
+            return;
+            }
+
+        // stop preview before making changes
+        try {
+            mCamera.stopPreview();
+
+        } catch (Exception e){
+            // ignore: tried to stop a non-existent preview
+        }
+        try {
+            mCamera.setPreviewDisplay(mHolder);
+            mCamera.startPreview();
+
+        } catch (Exception e){
+
+        }
     }
 
     @Override
@@ -348,7 +327,6 @@ public class CustomCameraActivity extends AppCompatActivity implements SurfaceHo
         } catch (IOException e) {
             Log.d("mPicture", "Error accessing file: " + e.getMessage());
         }
-
         mCamera.startPreview();
     };
 
